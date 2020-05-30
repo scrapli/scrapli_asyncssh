@@ -9,7 +9,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setuptools.setup(
     name="scrapli_asyncssh",
-    version="2020.XX.XX",
+    version="2020.05.29",
     author=__author__,
     author_email="carl.r.montanari@gmail.com",
     description="asyncssh transport plugin for the scrapli SSH|Telnet screen scraping library",
