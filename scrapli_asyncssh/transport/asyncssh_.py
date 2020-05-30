@@ -1,11 +1,9 @@
 """scrapli_asyncssh.transport.asyncssh_"""
-import asyncio
 from logging import getLogger
 from threading import Lock
 from typing import Optional
 
 import asyncssh
-
 from scrapli.transport import AsyncTransport
 
 LOG = getLogger("transport")
@@ -98,7 +96,7 @@ class AsyncSSHTransport(AsyncTransport):
         self.auth_password: str = auth_password
         self.auth_strict_key: bool = auth_strict_key
         self.ssh_known_hosts_file: str = ssh_known_hosts_file
-
+        self.port = port
         self.session_lock: Lock = Lock()
 
         self.conn: asyncssh.connection.SSHClientConnection
@@ -121,10 +119,17 @@ class AsyncSSHTransport(AsyncTransport):
             ScrapliAuthenticationFailed: if all authentication means fail
 
         """
-        fut = asyncssh.connect(self.host, username=self.auth_username, password=self.auth_password, known_hosts=None)
+        self.conn = await asyncssh.connect(
+            self.host,
+            username=self.auth_username,
+            password=self.auth_password,
+            port=self.port,
+            known_hosts=None,
+        )
         # can i pass a socket like i do for paramiko? should give more control for timeouts maybe?
-        self.conn = await asyncio.wait_for(fut=fut, timeout=5)
-        self.stdin, self.stdout, self.stderr = await self.conn.open_session()
+        # it seems we must pass a terminal type to force a pty which i think we want in like...
+        # every case?? https://invisible-island.net/ncurses/ncurses.faq.html#xterm_color
+        self.stdin, self.stdout, self.stderr = await self.conn.open_session(term_type="xterm")
 
     def close(self) -> None:
         """
@@ -142,6 +147,7 @@ class AsyncSSHTransport(AsyncTransport):
         """
         self.session_lock.acquire()
         self.conn.close()
+        del self.conn
         LOG.debug(f"Channel to host {self.host} closed")
         self.session_lock.release()
 
@@ -159,7 +165,11 @@ class AsyncSSHTransport(AsyncTransport):
             N/A
 
         """
-        return True
+        # TODO fix this filth, just so that testing can behave in scrapli core for now; see also
+        #  close where we just del conn... :(
+        if hasattr(self, "conn"):
+            return True
+        return False
 
     async def read(self) -> bytes:
         """
