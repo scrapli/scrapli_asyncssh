@@ -3,14 +3,14 @@ lint:
 	python -m black .
 	python -m pylama .
 	python -m pydocstyle .
-	python -m mypy --strict scrapli_asyncssh/
+	python -m mypy scrapli_asyncssh/
 
 lint_full:
 	python -m isort -rc -y .
 	python -m black .
 	python -m pylama .
 	python -m pydocstyle .
-	python -m mypy --strict scrapli_asyncssh/
+	python -m mypy -scrapli_asyncssh/
 	find scrapli_asyncssh -type f \( -iname "*.py" ! -iname "ptyprocess.py" \) | xargs darglint -x
 
 cov:
