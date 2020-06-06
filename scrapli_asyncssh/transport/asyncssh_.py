@@ -391,7 +391,6 @@ class AsyncSSHTransport(AsyncTransport):
             if (
                 isauthenticated
                 and self.session._transport.is_closing() is False  # pylint:  disable=W0212
-                and self.session._transport.is_reading() is True  # pylint:  disable=W0212
             ):
                 return True
         except AttributeError:
