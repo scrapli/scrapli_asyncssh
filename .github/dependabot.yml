@@ -12,7 +12,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "Sunday"
+      day: "sunday"
       timezone: "PST8PDT"
       time: "07:00"
     target-branch: "develop"
