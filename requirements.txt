@@ -1,2 +1,2 @@
-asyncssh==2.2.1
-scrapli==2020.06.06
+asyncssh>=2.2.1
+scrapli>=2020.06.06

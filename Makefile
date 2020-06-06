@@ -5,13 +5,6 @@ lint:
 	python -m pydocstyle .
 	python -m mypy scrapli_asyncssh/
 
-lint_full:
-	python -m isort -rc -y .
-	python -m black .
-	python -m pylama .
-	python -m pydocstyle .
-	python -m mypy scrapli_asyncssh/
-
 cov:
 	python -m pytest \
 	--cov=scrapli_asyncssh \
