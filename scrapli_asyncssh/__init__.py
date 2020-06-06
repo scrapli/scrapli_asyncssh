@@ -1,3 +1,3 @@
 """scrapli asyncssh transport plugin"""
 
-__version__ = "2020.06.06"
+__version__ = "2020.06.06a"
