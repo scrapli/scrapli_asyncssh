@@ -10,8 +10,7 @@ lint_full:
 	python -m black .
 	python -m pylama .
 	python -m pydocstyle .
-	python -m mypy -scrapli_asyncssh/
-	find scrapli_asyncssh -type f \( -iname "*.py" ! -iname "ptyprocess.py" \) | xargs darglint -x
+	python -m mypy scrapli_asyncssh/
 
 cov:
 	python -m pytest \

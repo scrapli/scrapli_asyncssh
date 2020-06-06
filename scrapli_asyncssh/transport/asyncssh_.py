@@ -77,7 +77,7 @@ class AsyncSSHTransport(AsyncTransport):
             N/A  # noqa: DAR202
 
         Raises:
-            MissingDependencies: if asyncssh is not installed
+            N/A
 
         """
         cfg_port, cfg_user, cfg_private_key = self._process_ssh_config(host, ssh_config_file)
@@ -109,6 +109,9 @@ class AsyncSSHTransport(AsyncTransport):
         self.stdout: SSHReader
         self.stdin: SSHWriter
         self.stderr: SSHReader
+
+        # private internal timeout value for async await timeout of read operations
+        self._timeout_transport: int = 5
 
     @staticmethod
     def _process_ssh_config(host: str, ssh_config_file: str) -> Tuple[Optional[int], str, str]:
@@ -190,8 +193,7 @@ class AsyncSSHTransport(AsyncTransport):
             N/A  # noqa: DAR202
 
         Raises:
-            Exception: if socket handshake fails
-            ScrapliAuthenticationFailed: if all authentication means fail
+            N/A
 
         """
         if self.auth_strict_key:
@@ -262,7 +264,7 @@ class AsyncSSHTransport(AsyncTransport):
         Attempt to authenticate with key based authentication
 
         Args:
-            N/A
+            common_args: Dict of kwargs that are common between asyncssh auth/open methods
 
         Returns:
             bool: True if authentication succeeds, otherwise False
@@ -301,7 +303,7 @@ class AsyncSSHTransport(AsyncTransport):
         Attempt to authenticate with password/kbd-interactive authentication
 
         Args:
-            N/A
+            common_args: Dict of kwargs that are common between asyncssh auth/open methods
 
         Returns:
             bool: True if authentication succeeds, otherwise False
@@ -382,9 +384,19 @@ class AsyncSSHTransport(AsyncTransport):
             N/A
 
         """
-        #  TODO this is awful... isalive has no purpose basically at this point
         isauthenticated: bool = self.session._auth_complete  # pylint:  disable=W0212
-        return isauthenticated
+        # this may need to be revisited in the future, but this seems to be a good check for
+        # aliveness
+        try:
+            if (
+                isauthenticated
+                and self.session._transport.is_closing() is False  # pylint:  disable=W0212
+                and self.session._transport.is_reading() is True  # pylint:  disable=W0212
+            ):
+                return True
+        except AttributeError:
+            pass
+        return False
 
     async def read(self) -> bytes:
         """
@@ -397,11 +409,18 @@ class AsyncSSHTransport(AsyncTransport):
             bytes: bytes output as read from channel
 
         Raises:
-            N/A
+            ScrapliTimeout: if async read does not complete within timeout_transport interval
 
         """
-        output: bytes = await self.stdout.read(65535)
-        return output
+        try:
+            output: bytes = await asyncio.wait_for(
+                self.stdout.read(65535), timeout=self._timeout_transport
+            )
+            return output
+        except asyncio.TimeoutError:
+            msg = f"Timed out reading from transport, transport timeout: {self._timeout_transport}"
+            self.logger.exception(msg)
+            raise ScrapliTimeout(msg)
 
     def write(self, channel_input: str) -> None:
         """
@@ -433,6 +452,11 @@ class AsyncSSHTransport(AsyncTransport):
             N/A
 
         """
+        if isinstance(timeout, int):
+            set_timeout = timeout
+        else:
+            set_timeout = self.timeout_transport
+        self._timeout_transport = set_timeout
 
     def _keepalive_standard(self) -> None:
         """

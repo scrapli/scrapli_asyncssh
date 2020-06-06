@@ -2,6 +2,8 @@
 """scrapli_asyncssh - asyncssh transport plugin for scrapli"""
 import setuptools
 
+from scrapli_asyncssh import __version__
+
 __author__ = "Carl Montanari"
 
 with open("README.md", "r", encoding="utf-8") as f:
@@ -9,7 +11,7 @@ with open("README.md", "r", encoding="utf-8") as f:
 
 setuptools.setup(
     name="scrapli_asyncssh",
-    version="2020.05.29",
+    version=__version__,
     author=__author__,
     author_email="carl.r.montanari@gmail.com",
     description="asyncssh transport plugin for the scrapli SSH|Telnet screen scraping library",
@@ -17,7 +19,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/scrapli/scrapli_asyncssh",
     packages=setuptools.find_packages(),
-    install_requires=["scrapli>=2020.05.09", "asyncssh>=2.2.1"],
+    install_requires=["scrapli>=2020.06.06", "asyncssh>=2.2.1"],
     extras_require={},
     classifiers=[
         "License :: OSI Approved :: MIT License",
