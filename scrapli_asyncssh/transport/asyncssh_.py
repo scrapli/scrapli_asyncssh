@@ -8,6 +8,7 @@ from asyncssh.connection import SSHClientConnection
 from asyncssh.misc import PermissionDenied
 from asyncssh.stream import SSHReader, SSHWriter
 
+from scrapli.decorators import requires_open_session
 from scrapli.exceptions import KeyVerificationFailed, ScrapliAuthenticationFailed, ScrapliTimeout
 from scrapli.ssh_config import SSHConfig, SSHKnownHosts
 from scrapli.transport import AsyncTransport
@@ -236,6 +237,7 @@ class AsyncSSHTransport(AsyncTransport):
             "port": self.port,
             "username": self.auth_username,
             "known_hosts": None,
+            "agent_path": None,
         }
 
         if self.auth_private_key:
@@ -397,6 +399,7 @@ class AsyncSSHTransport(AsyncTransport):
             pass
         return False
 
+    @requires_open_session()
     async def read(self) -> bytes:
         """
         Read data from the channel
@@ -421,6 +424,7 @@ class AsyncSSHTransport(AsyncTransport):
             self.logger.exception(msg)
             raise ScrapliTimeout(msg)
 
+    @requires_open_session()
     def write(self, channel_input: str) -> None:
         """
         Write data to the channel
