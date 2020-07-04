@@ -111,9 +111,6 @@ class AsyncSSHTransport(AsyncTransport):
         self.stdin: SSHWriter
         self.stderr: SSHReader
 
-        # private internal timeout value for async await timeout of read operations
-        self._timeout_transport: int = 5
-
     @staticmethod
     def _process_ssh_config(host: str, ssh_config_file: str) -> Tuple[Optional[int], str, str]:
         """
@@ -416,11 +413,11 @@ class AsyncSSHTransport(AsyncTransport):
         """
         try:
             output: bytes = await asyncio.wait_for(
-                self.stdout.read(65535), timeout=self._timeout_transport
+                self.stdout.read(65535), timeout=self.timeout_transport
             )
             return output
         except asyncio.TimeoutError:
-            msg = f"Timed out reading from transport, transport timeout: {self._timeout_transport}"
+            msg = f"Timed out reading from transport, transport timeout: {self.timeout_transport}"
             self.logger.exception(msg)
             raise ScrapliTimeout(msg)
 
@@ -459,7 +456,7 @@ class AsyncSSHTransport(AsyncTransport):
             set_timeout = timeout
         else:
             set_timeout = self.timeout_transport
-        self._timeout_transport = set_timeout
+        self.timeout_transport = set_timeout
 
     def _keepalive_standard(self) -> None:
         """
