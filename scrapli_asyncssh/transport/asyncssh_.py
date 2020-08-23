@@ -98,6 +98,8 @@ class AsyncSSHTransport(AsyncTransport):
             keepalive_pattern,
         )
 
+        self.timeout_transport: int
+
         self.auth_username: str = auth_username or cfg_user
         self.auth_private_key: str = auth_private_key or cfg_private_key
         self.auth_password: str = auth_password
@@ -279,13 +281,13 @@ class AsyncSSHTransport(AsyncTransport):
                 timeout=self.timeout_socket,
             )
             return True
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as exc:
             msg = (
                 f"Private key authentication with host {self.host} failed. "
                 "Authentication Timed Out."
             )
             self.logger.exception(msg)
-            raise ScrapliTimeout(msg)
+            raise ScrapliTimeout(msg) from exc
         except PermissionDenied:
             self.logger.critical(
                 f"Private key authentication with host {self.host} failed. Authentication Error."
@@ -317,10 +319,10 @@ class AsyncSSHTransport(AsyncTransport):
                 connect(password=self.auth_password, **common_args), timeout=self.timeout_socket
             )
             return True
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as exc:
             msg = f"Password authentication with host {self.host} failed. Authentication Timed Out."
             self.logger.exception(msg)
-            raise ScrapliTimeout(msg)
+            raise ScrapliTimeout(msg) from exc
         except PermissionDenied:
             self.logger.critical(
                 f"Password authentication with host {self.host} failed. Authentication Error."
@@ -416,10 +418,10 @@ class AsyncSSHTransport(AsyncTransport):
                 self.stdout.read(65535), timeout=self.timeout_transport
             )
             return output
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as exc:
             msg = f"Timed out reading from transport, transport timeout: {self.timeout_transport}"
             self.logger.exception(msg)
-            raise ScrapliTimeout(msg)
+            raise ScrapliTimeout(msg) from exc
 
     @requires_open_session()
     def write(self, channel_input: str) -> None:

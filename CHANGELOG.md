@@ -1,6 +1,9 @@
 CHANGELOG
 =======
 
+# 2020.XX.XX
+- Minor internal updates to appease updated pylint/isort
+
 # 2020.07.04
 - Disable ssh agent for now -- this will probably get supported/added in the future, but can cause hard to
  troubleshoot delays for now!

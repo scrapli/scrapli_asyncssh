@@ -79,7 +79,7 @@ def isort(session):
 
     """
     session.install(f"isort{DEV_REQUIREMENTS['isort']}")
-    session.run("isort", "-rc", "-c", ".")
+    session.run("isort", ".")
 
 
 @nox.session(python=["3.8"])
