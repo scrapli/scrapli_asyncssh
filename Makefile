@@ -1,8 +1,10 @@
 lint:
-	python -m isort .
-	python -m black .
-	python -m pylama .
-	python -m pydocstyle .
+	python -m isort scrapli_asyncssh/
+	python -m isort tests/
+	python -m black scrapli_asyncssh/
+	python -m black tests/
+	python -m pylama scrapli_asyncssh/
+	python -m pydocstyle scrapli_asyncssh/
 	python -m mypy scrapli_asyncssh/
 
 cov:
