@@ -1,6 +1,5 @@
 """scrapli_asyncssh.transport.asyncssh_"""
 import asyncio
-from threading import Lock
 from typing import Any, Dict, Optional, Tuple
 
 from asyncssh import connect
@@ -36,18 +35,13 @@ class AsyncSSHTransport(AsyncTransport):
         timeout_socket: int = 5,
         timeout_transport: int = 5,
         timeout_exit: bool = True,
-        keepalive: bool = False,
-        keepalive_interval: int = 30,
-        keepalive_type: str = "",
-        keepalive_pattern: str = "\005",
         ssh_config_file: str = "",
         ssh_known_hosts_file: str = "",
     ) -> None:
         """
         AsyncSSHTransport Object
 
-        Inherit from Transport ABC
-        AsyncSSHTransport <- Transport (ABC)
+        AsyncSSHTransport <- AsyncTransport <- Transport (ABC)
 
         Args:
             host: host ip/name to connect to
@@ -58,19 +52,7 @@ class AsyncSSHTransport(AsyncTransport):
             auth_strict_key: True/False to enforce strict key checking (default is True)
             timeout_socket: timeout for establishing socket in seconds
             timeout_transport: timeout for ssh transport in seconds
-            timeout_exit: True/False close transport if timeout encountered. If False and keepalives
-                are in use, keepalives will prevent program from exiting so you should be sure to
-                catch Timeout exceptions and handle them appropriately
-            keepalive: whether or not to try to keep session alive
-            keepalive_interval: interval to use for session keepalives
-            keepalive_type: network|standard -- 'network' sends actual characters over the
-                transport channel. This is useful for network-y type devices that may not support
-                'standard' keepalive mechanisms. 'standard' is not currently implemented w/ asyncssh
-            keepalive_pattern: pattern to send to keep network channel alive. Default is
-                u'\005' which is equivalent to 'ctrl+e'. This pattern moves cursor to end of the
-                line which should be an innocuous pattern. This will only be entered *if* a lock
-                can be acquired. This is only applicable if using keepalives and if the keepalive
-                type is 'network'
+            timeout_exit: True/False close transport if timeout encountered
             ssh_config_file: string to path for ssh config file
             ssh_known_hosts_file: string to path for ssh known hosts file
 
@@ -92,10 +74,6 @@ class AsyncSSHTransport(AsyncTransport):
             timeout_socket,
             timeout_transport,
             timeout_exit,
-            keepalive,
-            keepalive_interval,
-            keepalive_type,
-            keepalive_pattern,
         )
 
         self.timeout_transport: int
@@ -106,7 +84,6 @@ class AsyncSSHTransport(AsyncTransport):
         self.auth_strict_key: bool = auth_strict_key
         self.ssh_known_hosts_file: str = ssh_known_hosts_file
         self.port = port
-        self.session_lock: Lock = Lock()
 
         self.session: SSHClientConnection
         self.stdout: SSHReader
@@ -200,7 +177,6 @@ class AsyncSSHTransport(AsyncTransport):
             self.logger.debug(f"Attempting to validate {self.host} public key is in known hosts")
             self._verify_key()
 
-        self.session_lock.acquire()
         await self._authenticate()
 
         if self.auth_strict_key:
@@ -209,7 +185,6 @@ class AsyncSSHTransport(AsyncTransport):
             )
             self._verify_key_value()
 
-        self.session_lock.release()
         # it seems we must pass a terminal type to force a pty(?) which i think we want in like...
         # every case?? https://invisible-island.net/ncurses/ncurses.faq.html#xterm_color
         # set encoding to None so we get bytes for consistency w/ other scrapli transports
@@ -255,7 +230,6 @@ class AsyncSSHTransport(AsyncTransport):
         if not await self._authenticate_password(common_args=common_args):
             msg = f"Authentication to host {self.host} failed"
             self.logger.critical(msg)
-            self.session_lock.release()
             raise ScrapliAuthenticationFailed(msg)
 
         self.logger.debug(f"Authenticated to host {self.host} with password")
@@ -277,7 +251,9 @@ class AsyncSSHTransport(AsyncTransport):
         """
         try:
             self.session = await asyncio.wait_for(
-                connect(client_keys=self.auth_private_key, **common_args),
+                connect(
+                    client_keys=self.auth_private_key, preferred_auth=("publickey",), **common_args
+                ),
                 timeout=self.timeout_socket,
             )
             return True
@@ -316,7 +292,15 @@ class AsyncSSHTransport(AsyncTransport):
         """
         try:
             self.session = await asyncio.wait_for(
-                connect(password=self.auth_password, **common_args), timeout=self.timeout_socket
+                connect(
+                    password=self.auth_password,
+                    preferred_auth=(
+                        "keyboard-interactive",
+                        "password",
+                    ),
+                    **common_args,
+                ),
+                timeout=self.timeout_socket,
             )
             return True
         except asyncio.TimeoutError as exc:
@@ -365,11 +349,9 @@ class AsyncSSHTransport(AsyncTransport):
             N/A
 
         """
-        self.session_lock.acquire()
         self.session.close()
         self.session._auth_complete = False  # pylint:  disable=W0212
         self.logger.debug(f"Channel to host {self.host} closed")
-        self.session_lock.release()
 
     def isalive(self) -> bool:
         """
@@ -440,7 +422,7 @@ class AsyncSSHTransport(AsyncTransport):
         """
         self.stdin.write(channel_input.encode())
 
-    def set_timeout(self, timeout: Optional[int] = None) -> None:
+    def set_timeout(self, timeout: int) -> None:
         """
         Set session timeout
 
@@ -454,24 +436,4 @@ class AsyncSSHTransport(AsyncTransport):
             N/A
 
         """
-        if isinstance(timeout, int):
-            set_timeout = timeout
-        else:
-            set_timeout = self.timeout_transport
-        self.timeout_transport = set_timeout
-
-    def _keepalive_standard(self) -> None:
-        """
-        Send 'out of band' (protocol level) keepalives to devices.
-
-        Args:
-            N/A
-
-        Returns:
-            N/A  # noqa: DAR202
-
-        Raises:
-            NotImplementedError: not yet implemented for asyncssh
-
-        """
-        raise NotImplementedError("No 'standard' keepalive mechanism for asyncssh.")
+        self.timeout_transport = timeout
