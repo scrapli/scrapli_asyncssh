@@ -9,7 +9,7 @@ __author__ = "Carl Montanari"
 with open("README.md", "r", encoding="utf-8") as f:
     README = f.read()
 
-with open(f"requirements.txt", "r") as f:
+with open("requirements.txt", "r") as f:
     INSTALL_REQUIRES = f.read().splitlines()
 
 setuptools.setup(

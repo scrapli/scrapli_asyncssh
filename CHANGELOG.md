@@ -1,6 +1,9 @@
 CHANGELOG
 =======
 
+# XXXX.XX.XX
+
+
 # 2020.10.10
 - Minor internal updates to appease updated pylint/isort
 - Add 3.9 to actions, update pins, try to behave like an adult :D

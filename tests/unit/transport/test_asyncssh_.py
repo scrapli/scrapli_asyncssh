@@ -156,10 +156,3 @@ def test_set_timeout():
     assert conn.timeout_transport == 5
     conn.set_timeout(999)
     assert conn.timeout_transport == 999
-
-
-def test__keepalive_standard():
-    conn = Transport("172.18.0.11")
-    with pytest.raises(NotImplementedError) as exc:
-        conn._keepalive_standard()
-    assert str(exc.value) == "No 'standard' keepalive mechanism for asyncssh."
