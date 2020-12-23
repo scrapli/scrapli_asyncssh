@@ -1,7 +1,13 @@
 CHANGELOG
 =======
 
-# XXXX.XX.XX
+# 2020.12.23
+- Catch `ConnectionLost` exception during read operations so we can raise a scrapli exception instead of the asyncssh
+ exception
+- Explicitly pass ssh config file to asyncssh -- in this way if the user sets ssh_config_file=False we will make 
+  sure that asyncssh ignores the config file
+- Bumped up the default timeout values as they were probably a little on the aggressive side -- its user 
+  configurable anyway so folks can set this to whatever they feel like!
 
 
 # 2020.10.10

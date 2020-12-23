@@ -153,6 +153,6 @@ async def test_open_verify_key():
 
 def test_set_timeout():
     conn = Transport("172.18.0.11")
-    assert conn.timeout_transport == 5
+    assert conn.timeout_transport == 30
     conn.set_timeout(999)
     assert conn.timeout_transport == 999

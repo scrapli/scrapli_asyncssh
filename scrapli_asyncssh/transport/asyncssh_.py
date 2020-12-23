@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from asyncssh import connect
 from asyncssh.connection import SSHClientConnection
-from asyncssh.misc import PermissionDenied
+from asyncssh.misc import ConnectionLost, PermissionDenied
 from asyncssh.stream import SSHReader, SSHWriter
 
 from scrapli.decorators import requires_open_session
@@ -27,13 +27,13 @@ class AsyncSSHTransport(AsyncTransport):
     def __init__(
         self,
         host: str,
-        port: int = -1,
+        port: int = 22,
         auth_username: str = "",
         auth_private_key: str = "",
         auth_password: str = "",
         auth_strict_key: bool = True,
-        timeout_socket: int = 5,
-        timeout_transport: int = 5,
+        timeout_socket: int = 10,
+        timeout_transport: int = 30,
         timeout_exit: bool = True,
         ssh_config_file: str = "",
         ssh_known_hosts_file: str = "",
@@ -64,9 +64,7 @@ class AsyncSSHTransport(AsyncTransport):
 
         """
         cfg_port, cfg_user, cfg_private_key = self._process_ssh_config(host, ssh_config_file)
-
-        if port == -1:
-            port = cfg_port or 22
+        port = cfg_port or port
 
         super().__init__(
             host,
@@ -82,8 +80,8 @@ class AsyncSSHTransport(AsyncTransport):
         self.auth_private_key: str = auth_private_key or cfg_private_key
         self.auth_password: str = auth_password
         self.auth_strict_key: bool = auth_strict_key
+        self.ssh_config_file: str = ssh_config_file
         self.ssh_known_hosts_file: str = ssh_known_hosts_file
-        self.port = port
 
         self.session: SSHClientConnection
         self.stdout: SSHReader
@@ -206,12 +204,16 @@ class AsyncSSHTransport(AsyncTransport):
             ScrapliAuthenticationFailed: if authentication fails
 
         """
+        # we already fetched host/port/user from the user input and/or the ssh config file, so we
+        # want to use those explicitly. likewise we pass config file we already found. set known
+        # hosts and agent to None so we can not have an agent and deal w/ known hosts ourselves
         common_args = {
             "host": self.host,
             "port": self.port,
             "username": self.auth_username,
             "known_hosts": None,
             "agent_path": None,
+            "config": self.ssh_config_file,
         }
 
         if self.auth_private_key:
@@ -402,6 +404,10 @@ class AsyncSSHTransport(AsyncTransport):
             return output
         except asyncio.TimeoutError as exc:
             msg = f"Timed out reading from transport, transport timeout: {self.timeout_transport}"
+            self.logger.exception(msg)
+            raise ScrapliTimeout(msg) from exc
+        except ConnectionLost as exc:
+            msg = "Connection lost while reading from transport"
             self.logger.exception(msg)
             raise ScrapliTimeout(msg) from exc
 
