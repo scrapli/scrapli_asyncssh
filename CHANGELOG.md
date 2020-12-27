@@ -1,6 +1,12 @@
 CHANGELOG
 =======
 
+# XXXX.XX.XX
+- Catch `BrokenPipeError` during connection close... going to assume that this is occurring due to connection 
+  *already* being closed and given that that is what we are hoping to achieve in the `close` method that seems 
+  alright with me. (note that this seemed to only crop up in github actions w/ ubuntu-latest and py3.8)
+
+
 # 2020.12.23
 - Catch `ConnectionLost` exception during read operations so we can raise a scrapli exception instead of the asyncssh
  exception

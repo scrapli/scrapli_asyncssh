@@ -351,7 +351,13 @@ class AsyncSSHTransport(AsyncTransport):
             N/A
 
         """
-        self.session.close()
+        try:
+            self.session.close()
+        except BrokenPipeError:
+            # it seems it is possible for the connection transport is_closing() to be true already
+            # in some cases... since we are closing the connection anyway we will just ignore this
+            # note that this seemed to only happen in github actions on ubuntu-latest w/ py3.8...
+            pass
         self.session._auth_complete = False  # pylint:  disable=W0212
         self.logger.debug(f"Channel to host {self.host} closed")
 
